@@ -1,88 +1,10 @@
 #include <iostream>
 
-#define SIZE 3
+#include "GpuTimer.cuh"
+#include "VectorOperations.cuh"
 
-#define NB_ELEM_MAT 32
-#define BLOCK_SIZE_MAT 32
-
-#define BLOCK_DIM_VEC 32
-
-#define MAX_ITER 1
+#define MAX_ITER 1000
 #define EPS 1e-4
-
-#define A(row, col) (A[(row) * SIZE + (col)])
-
-__global__ void matDotVec(float *A, float *b, float *res) {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < SIZE) {
-        float tmp = 0.0;
-        for (int i = 0; i < SIZE; ++i)
-            tmp += b[i] * A[SIZE * idx + i];
-        res[idx] = tmp;
-    }
-}
-
-__global__ void vecDotVec(float *a, float *b, float *res) {
-    __shared__ float shared_tmp[BLOCK_DIM_VEC];
-
-    unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-    if (idx == 0) {
-        *res = 0.0;
-    }
-
-    if (idx < SIZE) {
-        shared_tmp[threadIdx.x] = a[idx] * b[idx];
-    } else {
-        shared_tmp[threadIdx.x] = 0.0;
-    }
-
-    for (int i = blockDim.x / 2; i >= 1; i = i / 2) {
-        __syncthreads();
-        if (threadIdx.x < i) {
-            shared_tmp[threadIdx.x] += shared_tmp[threadIdx.x + i];
-        }
-    }
-
-    if (threadIdx.x == 0) {
-        atomicAdd(res, shared_tmp[0]);
-    }
-}
-
-__global__ void scalDotVec(float *a, float *b, float *res) {
-    unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < SIZE) {
-        res[idx] = *a * b[idx];
-    }
-}
-
-__global__ void vecPlusVec(float *a, float *b, float *res) {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < SIZE) {
-        res[idx] = b[idx] + a[idx];
-    }
-}
-
-__global__ void vecMinVec(float *a, float *b, float *res) {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < SIZE) {
-        res[idx] = a[idx] - b[idx];
-    }
-}
-
-__global__ void div(float *num, float *den, float *out) {
-    unsigned int index_x = blockIdx.x * blockDim.x + threadIdx.x;
-    if (index_x == 0) {
-        *out = *num / *den;
-    }
-}
-
-__global__ void vecCpy(float *a, float *b) {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < SIZE) {
-        b[idx] = a[idx];
-    }
-}
 
 void solveCG(float *A, float *b, float *x, float *p, float *r, float *tmp, float *tmp_scal, float *alpha, float *beta, float *r_norm, float *r_norm_old, float *h_r_norm) {
     dim3 vec_block_dim(BLOCK_DIM_VEC);
@@ -133,20 +55,8 @@ int main() {
     float *h_r_norm = (float *)malloc(sizeof(float));
     *h_r_norm = 1.0;
 
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j <= i; j++) {
-            if (i == j) {
-                A(i, j) = i + SIZE;
-            } else {
-                A(i, j) = i;
-                A(j, i) = i;
-            }
-        }
-    }
-
-    for (int i = 0; i < SIZE; i++) {
-        b[i] = i;
-    }
+    fillA(A);
+    fillb(b);
 
     float *dev_A, *dev_b, *dev_x, *dev_p, *dev_r, *dev_tmp;
     cudaMalloc((void **)&dev_A, SIZE * SIZE * sizeof(float));
@@ -170,19 +80,21 @@ int main() {
     cudaMalloc((void **)&dev_r_norm_old, sizeof(float));
     cudaMalloc((void **)&dev_tmp_scal, sizeof(float));
 
-    for (int i = 0; i < SIZE; ++i) {
-        std::cout << x[i] << std::endl;
-    }
+    GpuTimer timing;
 
+    timing.Start();
     solveCG(dev_A, dev_b, dev_x, dev_p, dev_r, dev_tmp, dev_tmp_scal, dev_alpha, dev_beta, dev_r_norm, dev_r_norm_old, h_r_norm);
 
     cudaDeviceSynchronize();
+    timing.Stop();
+
+    double res = timing.GetTime();
+
+    std::cout << "Elapsed time: " << res << std::endl;
 
     cudaMemcpy(x, dev_x, SIZE * sizeof(float), cudaMemcpyDeviceToHost);
 
-    for (int i = 0; i < SIZE; ++i) {
-        std::cout << x[i] << std::endl;
-    }
+    print1DVec(x);
 
     free(A);
     free(b);

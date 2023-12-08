@@ -1,5 +1,7 @@
 .vscode
 
-CG-CUDA/main.exe
-CG-CUDA/main.exp
-CG-CUDA/main.lib
+CG-CUDA/iterative/main.exe
+
+CG-CUDA/parallel/main.exe
+CG-CUDA/parallel/main.exp
+CG-CUDA/parallel/main.lib
