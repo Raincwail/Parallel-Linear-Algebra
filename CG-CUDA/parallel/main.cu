@@ -1,4 +1,6 @@
+#include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include "GpuTimer.cuh"
 #include "VectorOperations.cuh"
@@ -6,40 +8,45 @@
 #define MAX_ITER 1000
 #define EPS 1e-4
 
+namespace patch {
+template <typename T>
+std::string to_string(const T &n) {
+    std::ostringstream stm;
+    stm << n;
+    return stm.str();
+}
+}  // namespace patch
+
 void solveCG(float *A, float *b, float *x, float *p, float *r, float *tmp, float *tmp_scal, float *alpha, float *beta, float *r_norm, float *r_norm_old, float *h_r_norm) {
-    dim3 vec_block_dim(BLOCK_DIM_VEC);
-    dim3 vec_grid_dim((SIZE + BLOCK_DIM_VEC - 1) / BLOCK_DIM_VEC);
+    dim3 mat_grid_dim((SIZE + BLOCK_ELEM_MAT - 1) / BLOCK_ELEM_MAT, (SIZE + BLOCK_SIZE_MAT - 1) / BLOCK_SIZE_MAT);
 
-    dim3 mat_grid_dim((SIZE + NB_ELEM_MAT - 1) / NB_ELEM_MAT, (SIZE + BLOCK_SIZE_MAT - 1) / BLOCK_SIZE_MAT);
-    dim3 mat_block_dim(BLOCK_SIZE_MAT);
-
-    vecDotVec<<<vec_grid_dim, vec_block_dim>>>(r, r, r_norm_old);
+    vecDotVec<<<VEC_GRID_DIM, BLOCK_DIM_VEC>>>(r, r, r_norm_old);
     int it = 0;
     while ((it < MAX_ITER) && (*h_r_norm > EPS)) {
         // Get Ap (tmp)
-        matDotVec<<<mat_grid_dim, mat_block_dim>>>(A, p, tmp);
+        matDotVec<<<mat_grid_dim, BLOCK_SIZE_MAT>>>(A, p, tmp);
 
         // Get alpha_k
-        vecDotVec<<<vec_grid_dim, vec_block_dim>>>(p, tmp, tmp_scal);
+        vecDotVec<<<VEC_GRID_DIM, BLOCK_DIM_VEC>>>(p, tmp, tmp_scal);
         div<<<1, 1>>>(r_norm_old, tmp_scal, alpha);
 
         // Get r_{k + 1}
-        scalDotVec<<<vec_grid_dim, vec_block_dim>>>(alpha, tmp, tmp);
-        vecMinVec<<<vec_grid_dim, vec_block_dim>>>(r, tmp, r);
+        scalDotVec<<<VEC_GRID_DIM, BLOCK_DIM_VEC>>>(alpha, tmp, tmp);
+        vecMinVec<<<VEC_GRID_DIM, BLOCK_DIM_VEC>>>(r, tmp, r);
 
         // Get x_{k + 1}
-        scalDotVec<<<vec_grid_dim, vec_block_dim>>>(alpha, p, tmp);
-        vecPlusVec<<<vec_grid_dim, vec_block_dim>>>(x, tmp, x);
+        scalDotVec<<<VEC_GRID_DIM, BLOCK_DIM_VEC>>>(alpha, p, tmp);
+        vecPlusVec<<<VEC_GRID_DIM, BLOCK_DIM_VEC>>>(x, tmp, x);
 
         // r_{k + 1} is small??
 
         // Get beta_{k}
-        vecDotVec<<<vec_grid_dim, vec_block_dim>>>(r, r, r_norm);
+        vecDotVec<<<VEC_GRID_DIM, BLOCK_DIM_VEC>>>(r, r, r_norm);
         div<<<1, 1>>>(r_norm, r_norm_old, beta);
 
         // Get p_{k + 1}
-        scalDotVec<<<vec_grid_dim, vec_block_dim>>>(beta, p, tmp);
-        vecPlusVec<<<vec_grid_dim, vec_block_dim>>>(r, tmp, p);
+        scalDotVec<<<VEC_GRID_DIM, BLOCK_DIM_VEC>>>(beta, p, tmp);
+        vecPlusVec<<<VEC_GRID_DIM, BLOCK_DIM_VEC>>>(r, tmp, p);
 
         vecCpy<<<1, 1>>>(r_norm, r_norm_old);
 
@@ -92,9 +99,15 @@ int main() {
 
     std::cout << "Elapsed time: " << res << std::endl;
 
+    std::ofstream outfile("Performance/Threads_" + patch::to_string(BLOCK_DIM_VEC) + "/" + patch::to_string(SIZE));
+
+    outfile << timing.GetTime() << std::endl;
+
+    outfile.close();
+
     cudaMemcpy(x, dev_x, SIZE * sizeof(float), cudaMemcpyDeviceToHost);
 
-    print1DVec(x);
+    // print1DVec(x);
 
     free(A);
     free(b);

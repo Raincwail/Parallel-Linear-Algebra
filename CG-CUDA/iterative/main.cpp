@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 
 #include "Timer.h"
@@ -73,5 +74,11 @@ int main() {
 
     std::cout << "Elapsed time: " << timing.GetTime() << std::endl;
 
-    print1DVec(x);
+    std::ofstream outfile("Performance/" + std::to_string(SIZE));
+
+    outfile << timing.GetTime() << std::endl;
+
+    outfile.close();
+
+    // print1DVec(x);
 }

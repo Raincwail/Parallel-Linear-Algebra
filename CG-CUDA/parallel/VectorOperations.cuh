@@ -1,17 +1,34 @@
 #include "../Base.h"
 
-#define NB_ELEM_MAT 32
+#define BLOCK_ELEM_MAT 32
 #define BLOCK_SIZE_MAT 32
 
 #define BLOCK_DIM_VEC 32
 
+#define VEC_GRID_DIM (SIZE + BLOCK_DIM_VEC - 1) / BLOCK_DIM_VEC
+
 __global__ void matDotVec(float *A, float *b, float *res) {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < SIZE) {
-        float tmp = 0.0;
-        for (int i = 0; i < SIZE; ++i)
-            tmp += b[i] * A[SIZE * idx + i];
-        res[idx] = tmp;
+    __shared__ float b_shared[BLOCK_ELEM_MAT];
+
+    int effective_block_width;
+    if ((blockIdx.x + 1) * BLOCK_ELEM_MAT <= SIZE) {
+        effective_block_width = BLOCK_ELEM_MAT;
+    } else {
+        effective_block_width = SIZE % BLOCK_ELEM_MAT;
+    }
+
+    if (threadIdx.x < effective_block_width)
+        b_shared[threadIdx.x] = b[blockIdx.x * BLOCK_ELEM_MAT + threadIdx.x];
+
+    __syncthreads();
+
+    int idy = blockIdx.y * BLOCK_SIZE_MAT + threadIdx.x;
+    float tmp_scal = 0.0;
+    if (idy < SIZE) {
+        for (int i = 0; i < effective_block_width; i++) {
+            tmp_scal += b_shared[i] * A(blockIdx.x * BLOCK_ELEM_MAT + i, idy);
+        }
+        atomicAdd(res + idy, tmp_scal);
     }
 }
 
