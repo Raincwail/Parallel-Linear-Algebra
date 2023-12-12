@@ -1,5 +1,6 @@
 #include <iostream>
 #include <mpi.h>
+#include <string>
 #include "common.h"
 
 void gemvByRows(const float* localMatrix, const float* localVector, float* localResult, size_t localRows, size_t cols) {
@@ -22,6 +23,13 @@ int main(int argc, char** argv) {
     double duration = 0;
     int rows = 5000;
     int cols = 5000;
+    if (argc == 3) {
+        rows = std::stoi(argv[1]);
+        cols = std::stoi(argv[2]);
+    } else {
+        std::cout << "WARNING: matrix sizes are not provided. Use default 5000x5000\n";
+    }
+    std::cout << "Matrix: " << rows << "x" << cols << "\n";
     int vecSize = cols;
 
     int localRows = rows / nProc;

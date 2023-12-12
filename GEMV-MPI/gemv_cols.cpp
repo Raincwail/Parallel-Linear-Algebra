@@ -1,5 +1,6 @@
 #include <iostream>
 #include <mpi.h>
+#include <string>
 #include "common.h"
 
 void
@@ -24,6 +25,13 @@ int main(int argc, char** argv) {
     double duration = 0;
     int rows = 5000;
     int cols = 5000;
+    if (argc == 3) {
+        rows = std::stoi(argv[1]);
+        cols = std::stoi(argv[2]);
+    } else {
+        std::cout << "WARNING: matrix sizes are not provided. Use default 5000x5000\n";
+    }
+    std::cout << "Matrix: " << rows << "x" << cols << "\n";
     int vecSize = cols;
 
     auto* matrix = new float[rows * cols];

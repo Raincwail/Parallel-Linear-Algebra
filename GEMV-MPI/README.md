@@ -14,12 +14,12 @@ make -j8
 Примитивный скрипт (WIP), который запускает замеры производительности (+ юнит тест) и записывает результаты в файл
 Применение:
 ```bash
-run.sh ./path/to/executable
+run.sh ./path/to/executable n_rows n_cols
 ```
 
 Например,
 ```bash
-run.sh ./build/gemv_row.exe
+run.sh ./build/gemv_row.exe 5000 5000
 ```
 
 Результирующий файл с замерами по 9 процессам будет лежать рядом с executable файлом
