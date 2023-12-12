@@ -1,8 +1,10 @@
 #include <iostream>
 #include <cmath>
+#include <filesystem>
 #include <mpi.h>
 #include <string>
 #include "common.h"
+#include <fstream>
 
 void
 gemvByBlocks(const float* matrix, const float* vector, float* result, size_t numCols, size_t startRow, size_t endRow,
@@ -21,20 +23,28 @@ int main(int argc, char** argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &nProc);
 
+    std::ofstream fs = getFileStream(argc, argv, nProc);
+
     double startTime;
     double endTime;
     double duration = 0;
     int rows = 5000;
     int cols = 5000;
-    if (argc == 3) {
-        rows = std::stoi(argv[1]);
-        cols = std::stoi(argv[2]);
-    } else {
-        std::cout << "WARNING: matrix sizes are not provided. Use default 5000x5000\n";
-    }
-    std::cout << "Matrix: " << rows << "x" << cols << "\n";
-    int vecSize = cols;
 
+    if (argc == 4) {
+        rows = std::stoi(argv[2]);
+        cols = std::stoi(argv[3]);
+    } else {
+        if (rank == 0) {
+            std::cout << "WARNING: matrix sizes are not provided. Use default 5000x5000\n";
+        }
+    }
+    if (rank == 0) {
+        std::cout << "Number of processes: " << nProc << "\n";
+        std::cout << "Matrix: " << rows << "x" << cols << "\n";
+    }
+
+    int vecSize = cols;
     auto blocks1d = static_cast<int>(std::sqrt(nProc));
     int totalBlocks = blocks1d * blocks1d;
     int blockRows = rows / blocks1d;
@@ -102,6 +112,8 @@ int main(int argc, char** argv) {
     if (rank == 0) {
 //        printDebugInfo(matrix, vector, globalResult, rows, cols, rank, vecSize);
         execUnitTest(matrix, vector, globalResult, rows, cols);
+        fs << duration << " ";
+        std::cout << "\n";
     }
 
     delete[] matrix;

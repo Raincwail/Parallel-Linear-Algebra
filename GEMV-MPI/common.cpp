@@ -1,6 +1,7 @@
 #include <iostream>
 #include <random>
 #include <mpi.h>
+#include <fstream>
 #include "common.h"
 
 void printMatrix(const float* matrix, int rows, int cols) {
@@ -57,15 +58,15 @@ void printMaxTime(int rank, double& duration) {
     double maxTime = 0;
     MPI_Reduce(&duration, &maxTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     if (rank == 0) {
-        std::cout << "Max Time: " << maxTime << " secs\n";
+        std::cout << "Max Time: " << maxTime << " sec\n";
     }
 }
 
 void execUnitTest(const float* matrix, const float* vector, const float* res, int rows, int cols) {
     if (checkResult(matrix, vector, res, rows, cols)) {
-        std::cout << "PASS\n";
+        std::cout << "Test PASSED\n";
     } else {
-        std::cout << "(!) FAILED\n";
+        std::cout << "(!) Test FAILED\n";
     }
 }
 
@@ -76,4 +77,16 @@ void printDebugInfo(const float* matrix, const float* vector, const float* res, 
     printMatrix(vector, 1, vecSize);
     std::cout << "Result:" << "\n";
     printMatrix(res, 1, rows);
+}
+
+std::ofstream getFileStream(int argc, char* const* argv, int nProc) {
+    std::ofstream fs;
+    if (argc > 1) {
+        fs.open(argv[1], std::ios_base::app);
+        if (nProc == 1) {
+            fs.close();
+            fs.open(argv[1]);
+        }
+    }
+    return fs;
 }

@@ -19,4 +19,6 @@ void execUnitTest(const float* matrix, const float* vector, const float* res, in
 
 void printDebugInfo(const float* matrix, const float* vector, const float* res, int rows, int cols, int vecSize);
 
+std::ofstream getFileStream(int argc, char* const* argv, int nProc);
+
 #endif //MPI_TEST_COMMON_H
