@@ -1,4 +1,8 @@
 .vscode
+.idea
+
+*/cmake-build-debug
+*/cmake-build-release
 
 CG-CUDA/iterative/main.exe
 
@@ -6,6 +10,4 @@ CG-CUDA/parallel/main.exe
 CG-CUDA/parallel/main.exp
 CG-CUDA/parallel/main.lib
 
-.idea
-*/cmake-build-debug
-*/cmake-build-release
+CANNON-MPI/main.exe
