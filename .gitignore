@@ -1,4 +1,8 @@
 .vscode
+.idea
+
+*/cmake-build-debug
+*/cmake-build-release
 
 CG-CUDA/iterative/main.exe
 
