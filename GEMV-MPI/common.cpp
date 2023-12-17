@@ -57,8 +57,10 @@ void generateData(float* matrix, float* vector, float* res, const int rows, int 
 void printMaxTime(int rank, double& duration) {
     double maxTime = 0;
     MPI_Reduce(&duration, &maxTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    maxTime *= 1e3;
     if (rank == 0) {
-        std::cout << "Max Time: " << maxTime << " sec\n";
+        std::cout << "Max Time: " << maxTime << " ms\n";
+        duration = maxTime;
     }
 }
 
@@ -81,11 +83,11 @@ void printDebugInfo(const float* matrix, const float* vector, const float* res, 
 
 std::ofstream getFileStream(int argc, char* const* argv, int nProc) {
     std::ofstream fs;
-    if (argc > 1) {
-        fs.open(argv[1], std::ios_base::app);
+    if (argc == 4) {
+        fs.open(argv[3], std::ios_base::app);
         if (nProc == 1) {
             fs.close();
-            fs.open(argv[1]);
+            fs.open(argv[3]);
         }
     }
     return fs;

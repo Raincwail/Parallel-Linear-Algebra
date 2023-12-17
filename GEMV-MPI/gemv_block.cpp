@@ -31,9 +31,9 @@ int main(int argc, char** argv) {
     int rows = 5000;
     int cols = 5000;
 
-    if (argc == 4) {
-        rows = std::stoi(argv[2]);
-        cols = std::stoi(argv[3]);
+    if (argc > 2) {
+        rows = std::stoi(argv[1]);
+        cols = std::stoi(argv[2]);
     } else {
         if (rank == 0) {
             std::cout << "WARNING: matrix sizes are not provided. Use default 5000x5000\n";
@@ -103,16 +103,15 @@ int main(int argc, char** argv) {
 
     // Aggregate the results of all processes
     MPI_Barrier(MPI_COMM_WORLD);
-    startTime = MPI_Wtime();
     MPI_Reduce(localResult, globalResult, rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
-    endTime = MPI_Wtime();
-    duration += endTime - startTime;
 
     printMaxTime(rank, duration);
     if (rank == 0) {
 //        printDebugInfo(matrix, vector, globalResult, rows, cols, rank, vecSize);
         execUnitTest(matrix, vector, globalResult, rows, cols);
-        fs << duration << " ";
+        if (fs.is_open()) {
+            fs << duration << " ";
+        }
         std::cout << "\n";
     }
 

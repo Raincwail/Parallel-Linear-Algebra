@@ -3,6 +3,7 @@
 #include <string>
 #include "common.h"
 #include <fstream>
+#include <vector>
 
 void gemvByRows(const float* localMatrix, const float* localVector, float* localResult, size_t localRows, size_t cols) {
     for (size_t i = 0; i < localRows; ++i) {
@@ -27,9 +28,9 @@ int main(int argc, char** argv) {
     int rows = 5000;
     int cols = 5000;
 
-    if (argc == 4) {
-        rows = std::stoi(argv[2]);
-        cols = std::stoi(argv[3]);
+    if (argc > 2) {
+        rows = std::stoi(argv[1]);
+        cols = std::stoi(argv[2]);
     } else {
         if (rank == 0) {
             std::cout << "WARNING: matrix sizes are not provided. Use default 5000x5000\n";
@@ -78,10 +79,7 @@ int main(int argc, char** argv) {
     gemvByRows(localMatrix, vector, localResult, localRows, cols);
 
     // Aggregate the results of all processes
-    startTime = MPI_Wtime();
     MPI_Gather(localResult, localRows, MPI_FLOAT, globalResult, localRows, MPI_FLOAT, 0, MPI_COMM_WORLD);
-    endTime = MPI_Wtime();
-    duration += endTime - startTime;
 
     // Postprocess remaining rows
     if (rank == 0) {
@@ -97,7 +95,9 @@ int main(int argc, char** argv) {
     if (rank == 0) {
 //        printDebugInfo(matrix, vector, globalResult, rows, cols, rank, vecSize);
         execUnitTest(matrix, vector, globalResult, rows, cols);
-        fs << duration << " ";
+        if (fs.is_open()) {
+            fs << duration << " ";
+        }
         std::cout << "\n";
     }
 
