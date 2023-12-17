@@ -7,9 +7,9 @@
 void
 gemvByCols(const float* matrix, const float* vector, float* result, size_t numRows, size_t numCols, size_t startCol,
            size_t endCol) {
-    for (size_t i = startCol; i < endCol; ++i) {
-        for (size_t j = 0; j < numRows; ++j) {
-            result[j] += matrix[j * numCols + i] * vector[i];
+    for (size_t i = 0; i < numRows; ++i) {
+        for (size_t j = startCol; j < endCol; ++j) {
+            result[i] += matrix[i * numCols + j] * vector[j];
         }
     }
 }
